@@ -69,7 +69,7 @@ def write_result_to_file(csv_data, file_path):
         time = now.strftime('%H-%M-%S')
         base_file_name = pathlib.Path(file_path).stem
         output_file_name = f"{base_file_name}_{time}.csv"
-        output_path = pathlib.Path(file_path).parent / output_file_name
+        output_path = pathlib.Path(file_path) / output_file_name
         with open(output_path, 'w') as f:
             f.write(csv_data)
         print(f"Result written to CSV file {output_path}")
@@ -77,14 +77,15 @@ def write_result_to_file(csv_data, file_path):
         print(f"Failed to write result to file: {str(e)}")
         raise
 
-async def main_thread(file_path):
+def main_thread(file_path):
     try:
-        connection_string, query = read_file_contents(file_path)
+        connection_string, query, headers = read_file_contents(file_path)
         user, password, dsn = parse_connection_string(connection_string)
         connection = cx_Oracle.connect(user, password, dsn)
-        result = connection.execute(query)
+        cursor = connection.cursor()
+        result = cursor.execute(query)
         csv_data = to_csv(result.fetchall(), headers)
-        storage_path = prepare_storage_path(__dirname, 'StorageResults/')
+        storage_path = prepare_storage_path(os.getcwd(), 'StorageResults/')
         write_result_to_file(csv_data, storage_path)
     except Exception as e:
         print(f"Error while processing file {file_path}: {str(e)}")
