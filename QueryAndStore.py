@@ -11,12 +11,14 @@ def read_file_contents(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
         connection_string = lines[0].strip()
-        query = '\n'.join(lines[1:]).strip()
+        headers = lines[1].strip().split(', ') 
+        query = '\n'.join(lines[2:]).strip()  
         print(f"File read successfully: {file_path}")
-        return connection_string, query
+        return connection_string, query, headers
     except Exception as e:
         print(f"Failed to read file {file_path}: {str(e)}")
         raise
+
 
 def parse_connection_string(connection_string):
     try:
@@ -35,12 +37,11 @@ def parse_connection_string(connection_string):
         print(f"Failed to parse connection string: {str(e)}")
         raise
 
-def to_csv(data):
+def to_csv(data, headers):
     try:
-        header = ['barcodes', 'carrierid', 'timestamp']
         with open('output.csv', 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            csvwriter.writerow(header)
+            csvwriter.writerow(headers) 
             for row in data:
                 csvwriter.writerow([str(field).replace('"', '""') for field in row])
         print("Data converted to CSV format successfully")
@@ -48,6 +49,7 @@ def to_csv(data):
     except Exception as e:
         print(f"Error converting data to CSV: {str(e)}")
         raise
+
 
 def prepare_storage_path(base_path, subdir):
     try:
@@ -81,7 +83,7 @@ async def main_thread(file_path):
         user, password, dsn = parse_connection_string(connection_string)
         connection = cx_Oracle.connect(user, password, dsn)
         result = connection.execute(query)
-        csv_data = to_csv(result.fetchall())
+        csv_data = to_csv(result.fetchall(), headers)
         storage_path = prepare_storage_path(__dirname, 'StorageResults/')
         write_result_to_file(csv_data, storage_path)
     except Exception as e:
